@@ -12,12 +12,21 @@ class MongoDBHandler(object):
         self.db = self.client[mongo_db]
         self.table = self.db[mongo_talbe]
 
+    def close(self):
+        self.client.close()
+
     def save_to_app_name(self, items):
+        """
+        将app的name和apk_name存入mongoDB
+        :param items: 序列及生成器
+        :return:
+        """
         data = list(items)
-        filter_word = [{'apk_name':i.pop('apk_name')} for i in deepcopy(data)]
+        filter_word = [{'apk_name': i.pop('apk_name')} for i in deepcopy(data)]
 
         exist_data = list(self.table.find({'$or': filter_word}, {"_id": 0}))
         if exist_data == data:
+            print('无需更新')
             return
         insert_list = deepcopy(data)
         if exist_data:
@@ -42,7 +51,6 @@ class MongoDBHandler(object):
                     update_list.append(d)
                     insert_list.remove(d)
                     continue
-                print('新增', d)
 
 
             if update_list:
@@ -51,11 +59,11 @@ class MongoDBHandler(object):
                     name = u['name']
                     if self.table.update({'apk_name': akp_name}, {"$set":{'name': name}}):
                         print('%s应用名更新为%s' % (akp_name, name))
+
+            print('更新%s条数据' % len(update_list))
+
         if insert_list:
             res = self.table.insert_many(insert_list)
+            print('保存状态：', res.acknowledged)
             if res.acknowledged:
-                print('本次共新增%s条数据' % len(res.inserted_ids))
-        try:
-            print('更新%s条数据' % len(update_list))
-        except:
-            pass
+                print('新增%s条数据' % len(res.inserted_ids))
