@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
+
+
 from multiprocessing.pool import Pool
 
-from copy import deepcopy
 from pyquery.pyquery import PyQuery as pq
 
 from pmdesk import settings
