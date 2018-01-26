@@ -43,17 +43,17 @@ API_ENABLED = True
 # 最大批测试量(自动随机分批)
 BATCH_TEST_SIZE = 10
 
-
+# debug模式
 DEBUG = False
 PAGE_RANGE = 501, 510
 
+# mongo数据库配置
 MONGO_URL = 'localhost'
 MONGO_DB = 'papa'
-MONGO_TABLE = 'app_name'
 
+# 代理配置
 PROXY_MODE = True
 PROXY_GET_URL = 'http://0.0.0.0:5555/random'
-
 BASE_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
     'Accept-Encoding': 'gzip, deflate, sdch',

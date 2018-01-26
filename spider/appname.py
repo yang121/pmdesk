@@ -10,7 +10,7 @@ from repository.dbhandler import MongoDBHandler
 from utils.utils import get_page
 
 
-def get_baidu_index(n, proxies=True, debug=False):
+def crawl_baidu_shouji(n, proxies=True, debug=False):
     """
     根据分类首页获得最大页码决定范围，暂时只适配百度url
     :param n:
@@ -65,12 +65,17 @@ def save_to_app_name(items):
     """
     data = list(items)
     condition = [{'apk_name': i.pop('apk_name')} for i in deepcopy(data)]
+    if condition:
+        print('此数据中不含包名，丢弃：', items)
+        return
 
-    mongo = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, settings.MONGO_TABLE)
+    mongo = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, 'apk_name')
     exist_data = mongo.or_filter(condition)
     if exist_data == data:
         print('无需更新')
+        mongo.close()
         return
+
     insert_list = deepcopy(data)
     if exist_data:
         update_list = []
@@ -110,7 +115,7 @@ def main(n):
     :param n:
     :return:
     """
-    htmls = get_baidu_index(n, proxies=settings.PROXY_MODE, debug=settings.DEBUG)
+    htmls = crawl_baidu_shouji(n, proxies=settings.PROXY_MODE, debug=settings.DEBUG)
     for html in htmls:
         items = parse_page_index(html)
         if items:

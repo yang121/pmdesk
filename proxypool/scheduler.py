@@ -3,8 +3,8 @@ import time
 from multiprocessing import Process
 
 from pmdesk.settings import *
+from spider.proxy import Getter
 from .api import app
-from .getter import Getter
 from .tester import Tester
 
 
