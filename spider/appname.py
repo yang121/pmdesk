@@ -6,7 +6,7 @@ from copy import deepcopy
 from pyquery.pyquery import PyQuery as pq
 
 from pmdesk import settings
-from repository.dbhandler import MongoDBHandler
+from repository.MongoDBHandler import MongoDBHandler
 from utils.utils import get_page
 
 
@@ -40,7 +40,7 @@ def crawl_baidu_shouji(n, proxies=True, debug=False):
         break
 
 
-def parse_page_index(html):
+def parse_baidu_shouji(html):
     sub_doc = pq(html)
     down_btn = sub_doc('div.app-detail > p.down-btn > span')
     if down_btn:
@@ -65,11 +65,11 @@ def save_to_app_name(items):
     """
     data = list(items)
     condition = [{'apk_name': i.pop('apk_name')} for i in deepcopy(data)]
-    if condition:
+    if not condition:
         print('此数据中不含包名，丢弃：', items)
         return
 
-    mongo = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, 'apk_name')
+    mongo = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, 'app_name')
     exist_data = mongo.or_filter(condition)
     if exist_data == data:
         print('无需更新')
@@ -117,13 +117,13 @@ def main(n):
     """
     htmls = crawl_baidu_shouji(n, proxies=settings.PROXY_MODE, debug=settings.DEBUG)
     for html in htmls:
-        items = parse_page_index(html)
+        items = parse_baidu_shouji(html)
         if items:
             try:
                 save_to_app_name(items)
             except Exception as e:
                 print('MongoDB错误:', items, '被忽略', e)
-    print('%s页完成！' % n)
+    print('%s页抓取完成！' % n)
 
 
 def run():

@@ -1,5 +1,6 @@
 import io
-from pmdesk.settings import *
+import sys
+
 from proxypool.scheduler import Scheduler
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')

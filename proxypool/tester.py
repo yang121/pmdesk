@@ -8,13 +8,13 @@ try:
     from aiohttp import ClientError
 except:
     from aiohttp import ClientProxyConnectionError as ProxyConnectionError
-from repository.dbhandler import RedisHandler
+from repository.RedisHandler import ProxyRedisHandler
 from pmdesk.settings import *
 
 
 class Tester(object):
     def __init__(self):
-        self.redis = RedisHandler()
+        self.redis = ProxyRedisHandler()
     
     async def test_single_proxy(self, proxy):
         """

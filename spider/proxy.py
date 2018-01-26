@@ -2,7 +2,7 @@ import re
 import sys
 
 from pmdesk.settings import *
-from repository.dbhandler import RedisHandler
+from repository.RedisHandler import ProxyRedisHandler
 from utils.utils import get_page
 
 from pyquery import PyQuery as pq
@@ -244,7 +244,7 @@ class Crawler(object, metaclass=ProxyMetaclass):
 
 class Getter():
     def __init__(self):
-        self.redis = RedisHandler()
+        self.redis = ProxyRedisHandler()
         self.crawler = Crawler()
 
     def is_over_threshold(self):

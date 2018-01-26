@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-
+import sys
 
 from pmdesk.settings import *
 sys.path.append(BASEDIR)

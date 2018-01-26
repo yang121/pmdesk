@@ -1,6 +1,6 @@
-from repository.dbhandler import RedisHandler
+from repository.RedisHandler import ProxyRedisHandler
 
-conn = RedisHandler()
+conn = ProxyRedisHandler()
 
 
 def set(proxy):

@@ -2,6 +2,9 @@ import os
 
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Requests等待时间
+TIME_OUT = 5
+
 # Redis数据库地址
 REDIS_HOST = '127.0.0.1'
 
@@ -10,7 +13,6 @@ REDIS_PORT = 6379
 
 # Redis密码，如无填None
 REDIS_PASSWORD = None
-
 REDIS_KEY = 'proxies'
 
 # 代理分数
@@ -21,7 +23,7 @@ INITIAL_SCORE = 5
 VALID_STATUS_CODES = [200, 302]
 
 # 代理池数量界限
-POOL_UPPER_THRESHOLD = 100
+POOL_UPPER_THRESHOLD = 5000
 
 # 检查周期(随机范围)
 TESTER_CYCLE_RANGE = 20, 100

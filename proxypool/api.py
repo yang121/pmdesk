@@ -1,6 +1,6 @@
 from flask import Flask, g
 
-from repository.dbhandler import RedisHandler
+from repository.RedisHandler import RedisHandler
 
 __all__ = ['app']
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-import pymongo
 import re
 from random import choice
 
@@ -9,7 +8,7 @@ import redis
 
 from pmdesk.settings import MAX_SCORE, MIN_SCORE, INITIAL_SCORE
 from pmdesk.settings import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY
-from proxypool.error import PoolEmptyError
+from repository.error import PoolEmptyError
 
 
 class RedisHandler(object):
@@ -21,19 +20,6 @@ class RedisHandler(object):
         :param password: Redis密码
         """
         self.db = redis.StrictRedis(host=host, port=port, password=password, decode_responses=True)
-
-    def add(self, proxy, score=INITIAL_SCORE):
-        """
-        添加代理，设置分数为最高
-        :param proxy: 代理
-        :param score: 分数
-        :return: 添加结果
-        """
-        if not re.match('\d+\.\d+\.\d+\.\d+\:\d+', proxy):
-            print('代理不符合规范', proxy, '丢弃')
-            return
-        if not self.db.zscore(REDIS_KEY, proxy):
-            return self.db.zadd(REDIS_KEY, score, proxy)
 
     def random(self):
         """
@@ -49,6 +35,54 @@ class RedisHandler(object):
                 return choice(result)
             else:
                 raise PoolEmptyError
+
+    def count(self):
+        """
+        获取数量
+        :return: 数量
+        """
+        return self.db.zcard(REDIS_KEY)
+
+    def all(self):
+        """
+        获取全部代理
+        :return: 全部代理列表
+        """
+        return self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
+
+    def batch(self, start, stop):
+        """
+        批量获取
+        :param start: 开始索引
+        :param stop: 结束索引
+        :return: 代理列表
+        """
+        return self.db.zrevrange(REDIS_KEY, start, stop - 1)
+
+
+class ProxyRedisHandler(RedisHandler):
+
+    def __init__(self):
+        """
+        初始化
+        :param host: Redis 地址
+        :param port: Redis 端口
+        :param password: Redis密码
+        """
+        super(ProxyRedisHandler, self).__init__()
+
+    def add(self, proxy, score=INITIAL_SCORE):
+        """
+        添加代理，设置分数为最高
+        :param proxy: 代理
+        :param score: 分数
+        :return: 添加结果
+        """
+        if not re.match('\d+\.\d+\.\d+\.\d+\:\d+', proxy):
+            print('代理不符合规范', proxy, '丢弃')
+            return
+        if not self.db.zscore(REDIS_KEY, proxy):
+            return self.db.zadd(REDIS_KEY, score, proxy)
 
     def decrease(self, proxy):
         """
@@ -80,72 +114,3 @@ class RedisHandler(object):
         """
         print('代理', proxy, '可用，设置为', MAX_SCORE)
         return self.db.zadd(REDIS_KEY, MAX_SCORE, proxy)
-
-    def count(self):
-        """
-        获取数量
-        :return: 数量
-        """
-        return self.db.zcard(REDIS_KEY)
-
-    def all(self):
-        """
-        获取全部代理
-        :return: 全部代理列表
-        """
-        return self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
-
-    def batch(self, start, stop):
-        """
-        批量获取
-        :param start: 开始索引
-        :param stop: 结束索引
-        :return: 代理列表
-        """
-        return self.db.zrevrange(REDIS_KEY, start, stop - 1)
-
-
-class MongoDBHandler(object):
-
-    def __init__(self, mongo_url, mongo_db, mongo_table):
-        self.client = pymongo.MongoClient(mongo_url, connect=False)
-        self.db = self.client[mongo_db]
-        self.table = self.db[mongo_table]
-
-    def close(self):
-        self.client.close()
-
-    def or_filter(self, condition, show_id=0):
-        """
-        or查找
-        :param condition: [{'k':'v1'},{'k':'v2'},]
-        :param show_id: 1 or 0
-        :return: list for dictionary
-        """
-        return list(self.table.find({'$or': condition}, {"_id": show_id}))
-
-    def and_filter(self, condition, show_id=0):
-        """
-        and查找
-        :param condition: {'k1':'v1','k2':'v2'},
-        :param show_id: 1 or 0
-        :return: list for dictionary
-        """
-        return list(self.table.find(condition, {"_id": show_id}))
-
-    def insert_many(self, data):
-        """
-        批量插入
-        :param data: list for dictionary
-        :return:
-        """
-        return self.table.insert_many(data)
-
-    def update(self, condition, field):
-        """
-        更新特定内容的字段
-        :param condition: dictionary for filter field
-        :param field: dictionary for field to be updated
-        :return:
-        """
-        return self.table.update(condition, {"$set":field})

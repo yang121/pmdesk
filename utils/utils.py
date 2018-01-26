@@ -3,7 +3,7 @@ from time import sleep
 import requests
 from requests import RequestException
 
-from repository.dbhandler import RedisHandler
+from repository.RedisHandler import ProxyRedisHandler
 from pmdesk import settings
 
 
@@ -26,26 +26,34 @@ from pmdesk import settings
 #         return None
 
 
-def get_page(url, proxies=False, options={}, vaild_code=(200,)):
+def get_page(url, proxies=None, options={}, vaild_code=(200,)):
     headers = dict(settings.BASE_HEADERS, **options)
 
     while True:
         if proxies:
-            proxies = {'http': get_proxy()}
+            proxies = get_proxy()
         try:
-            response = requests.get(url, proxies=proxies,
+            response = requests.get(url, proxies={'http': proxies},
                                     headers=headers,  # 处理完当前事务后关闭连接
-                                    timeout=5)
+                                    timeout=settings.TIME_OUT)
             if response.status_code in vaild_code:
-                data = response.content.decode('utf-8')
+                try:
+                    data = response.content.decode('utf-8')
+                except UnicodeDecodeError:
+                    data = response.text
                 if data:
                     print('抓取成功', response.status_code)
                     response.close()
                     return data
         except RequestException as e:
-            print('连接%s失败！正在更换代理...' % url, e)
-            redis = RedisHandler()
-            redis.decrease(url)
+            if proxies:
+                print('连接%s失败！正在更换代理...' % url, e)
+                sleep(5)
+                redis = ProxyRedisHandler()
+                redis.decrease(proxies)
+            else:
+                print('无法连接到,10秒后再试：', url)
+                sleep(10)
 
 
 def get_proxy():
