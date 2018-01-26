@@ -6,8 +6,9 @@ from copy import deepcopy
 from pyquery.pyquery import PyQuery as pq
 
 from pmdesk import settings
-from repository.MongoDBHandler import MongoDBHandler
-from utils.utils import get_page
+from repository.MongoDBHandler import APPNameMongoDBHandler
+from utils.spider_utils import get_page
+from utils.timer import timer
 
 
 def crawl_baidu_shouji(n, proxies=True, debug=False):
@@ -20,7 +21,7 @@ def crawl_baidu_shouji(n, proxies=True, debug=False):
     """
     url = 'http://shouji.baidu.com/software/%s/' % n
     while True:
-        html = get_page(url, proxies, vaild_code=settings.VALID_STATUS_CODES)
+        html = get_page(url, proxies)
         doc = pq(html)
         try:
             page_num = int(doc('.next').prev('li').children().text())
@@ -36,77 +37,27 @@ def crawl_baidu_shouji(n, proxies=True, debug=False):
             print()
             print('==============================================================')
             print('正在爬: ', sub_url)
-            yield get_page(sub_url, proxies)
+            html = get_page(sub_url, proxies, selector='p.down-btn > span')
+            yield html
         break
 
 
 def parse_baidu_shouji(html):
-    sub_doc = pq(html)
-    down_btn = sub_doc('div.app-detail > p.down-btn > span')
+    doc = pq(html)
+    down_btn = doc('p.down-btn > span')
     if down_btn:
         print('本页有%s个应用' % down_btn.length)
         for d in down_btn.items():
             name = d.attr('data_name').strip()
             apk_name = d.attr('data_package').strip()
-            data = {
-                'name': name,
-                'apk_name': apk_name
-            }
-            yield data
+            if name and apk_name:
+                data = {
+                    'name': name,
+                    'apk_name': apk_name
+                }
+                yield data
     else:
         print('无数据！')
-
-
-def save_to_app_name(items):
-    """
-    将app的name和apk_name存入mongoDB
-    :param items: 序列 or 生成器
-    :return:
-    """
-    data = list(items)
-    condition = [{'apk_name': i.pop('apk_name')} for i in deepcopy(data)]
-    if not condition:
-        print('此数据中不含包名，丢弃：', items)
-        return
-
-    mongo = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, 'app_name')
-    exist_data = mongo.or_filter(condition)
-    if exist_data == data:
-        print('无需更新')
-        mongo.close()
-        return
-
-    insert_list = deepcopy(data)
-    if exist_data:
-        update_list = []
-        exist_apk_name = [ed['apk_name'] for ed in exist_data]
-
-        for d in data:
-            if d in exist_data:
-                insert_list.remove(d)
-                continue
-            if d['apk_name'] in exist_apk_name:
-                # print(d['apk_name'], '更新应用名为', d['name'])
-                update_list.append(d)
-                insert_list.remove(d)
-                continue
-
-        if update_list:
-            for u in update_list:
-                akp_name = u['apk_name']
-                name = u['name']
-                if mongo.update({'apk_name': akp_name}, {"$set": {'name': name}}):
-                    print('%s应用名更新为%s' % (akp_name, name))
-
-        print('更新%s条数据' % len(update_list))
-
-    if insert_list:
-        res = mongo.insert_many(insert_list)
-        print('保存状态：', res.acknowledged)
-        if res.acknowledged:
-            print('新增%s条数据' % len(res.inserted_ids))
-
-    mongo.close()
 
 
 def main(n):
@@ -118,14 +69,15 @@ def main(n):
     htmls = crawl_baidu_shouji(n, proxies=settings.PROXY_MODE, debug=settings.DEBUG)
     for html in htmls:
         items = parse_baidu_shouji(html)
-        if items:
-            try:
-                save_to_app_name(items)
-            except Exception as e:
-                print('MongoDB错误:', items, '被忽略', e)
+        try:
+            mongo = APPNameMongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, 'app_name')
+            mongo.save_to_table('apk_name', items)
+        except Exception as e:
+            print('MongoDB错误:', list(items), '被忽略', e)
     print('%s页抓取完成！' % n)
 
 
+@timer
 def run():
     if settings.DEBUG:
         page_range = 501, 502

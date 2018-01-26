@@ -3,7 +3,7 @@ import sys
 
 from pmdesk.settings import *
 from repository.RedisHandler import ProxyRedisHandler
-from utils.utils import get_page
+from utils.spider_utils import get_page
 
 from pyquery import PyQuery as pq
 

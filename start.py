@@ -3,6 +3,8 @@
 
 from multiprocessing.pool import Pool
 from time import sleep
+import sys
+
 from pmdesk.settings import *
 
 sys.path.append(BASEDIR)

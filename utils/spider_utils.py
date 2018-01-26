@@ -2,31 +2,13 @@ from time import sleep
 
 import requests
 from requests import RequestException
+from pyquery.pyquery import PyQuery as pq
 
 from repository.RedisHandler import ProxyRedisHandler
 from pmdesk import settings
 
 
-# def get_page(url, options={}):
-#     """
-#     抓取代理
-#     :param url:
-#     :param options:
-#     :return:
-#     """
-#     headers = dict(base_headers, **options)
-#     print('正在抓取', url)
-#     try:
-#         response = requests.get(url, headers=headers)
-#         print('抓取成功', url, response.status_code)
-#         if response.status_code == 200:
-#             return response.text
-#     except ConnectionError:
-#         print('抓取失败', url)
-#         return None
-
-
-def get_page(url, proxies=None, options={}, vaild_code=(200,)):
+def get_page(url, proxies=None, options={}, valid_code=(200,), selector=None):
     headers = dict(settings.BASE_HEADERS, **options)
 
     while True:
@@ -36,7 +18,7 @@ def get_page(url, proxies=None, options={}, vaild_code=(200,)):
             response = requests.get(url, proxies={'http': proxies},
                                     headers=headers,  # 处理完当前事务后关闭连接
                                     timeout=settings.TIME_OUT)
-            if response.status_code in vaild_code:
+            if response.status_code in valid_code:
                 try:
                     data = response.content.decode('utf-8')
                 except UnicodeDecodeError:
@@ -44,6 +26,12 @@ def get_page(url, proxies=None, options={}, vaild_code=(200,)):
                 if data:
                     print('抓取成功', response.status_code)
                     response.close()
+                    if selector:
+                        doc = pq(data)
+                        if doc(selector):
+                            return data
+                        else:
+                            continue
                     return data
         except RequestException as e:
             if proxies:

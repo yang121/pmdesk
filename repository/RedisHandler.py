@@ -12,7 +12,7 @@ from repository.error import PoolEmptyError
 
 
 class RedisHandler(object):
-    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD):
+    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, *args, **kwargs):
         """
         初始化
         :param host: Redis 地址
@@ -62,14 +62,14 @@ class RedisHandler(object):
 
 class ProxyRedisHandler(RedisHandler):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """
         初始化
         :param host: Redis 地址
         :param port: Redis 端口
         :param password: Redis密码
         """
-        super(ProxyRedisHandler, self).__init__()
+        super(ProxyRedisHandler, self).__init__(*args, **kwargs)
 
     def add(self, proxy, score=INITIAL_SCORE):
         """
