@@ -2,7 +2,7 @@ import sys
 
 from pmdesk.settings import *
 from repository.dbhandler import RedisHandler
-from .crawler import Crawler
+from spider.proxy import Crawler
 
 
 class Getter():
