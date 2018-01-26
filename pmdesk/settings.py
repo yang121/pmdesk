@@ -1,4 +1,4 @@
-import os,sys
+import os
 
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -53,3 +53,10 @@ MONGO_TABLE = 'app_name'
 
 PROXY_MODE = True
 PROXY_GET_URL = 'http://0.0.0.0:5555/random'
+
+BASE_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
+    'Accept-Encoding': 'gzip, deflate, sdch',
+    'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+    'Connection': 'close'
+}

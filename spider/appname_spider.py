@@ -2,34 +2,40 @@
 # -*- coding:utf-8 -*-
 from multiprocessing.pool import Pool
 
-import requests
 from pyquery.pyquery import PyQuery as pq
-from requests import RequestException
 
 from pmdesk import settings
-from repository.dbhandler import MongoDBHandler, RedisHandler
+from repository.dbhandler import MongoDBHandler
+from utils.utils import get_page
 
 
-# from ProxyPool.proxypool.repository import RedisClient
-
-def get_html(url, proxies=None):
-
-    while True:
-        if proxies:
-            proxies = {'http': get_proxy()}
-        try:
-            response = requests.get(url, proxies=proxies, timeout=2)
-            if response.status_code in settings.VALID_STATUS_CODES:
-                data = response.content.decode('utf-8')
-                if data:
-                    response.close()
-                    return data
-
-        except RequestException as e:
-            print('读取%s失败！正在更换代理...' % url, e)
-            redis = RedisHandler()
-            redis.decrease(url)
-
+# def get_html(url, proxies=None):
+#
+#     while True:
+#         if proxies:
+#             proxies = {'http': get_proxy()}
+#         try:
+#             response = requests.get(url, proxies=proxies,
+#                                     headers={'Connection': 'close'},  # 处理完当前事务后关闭连接
+#                                     timeout=15)
+#             if response.status_code in settings.VALID_STATUS_CODES:
+#                 data = response.content.decode('utf-8')
+#                 if data:
+#                     response.close()
+#                     return data
+#         except ConnectTimeout as e:
+#             print('连接%s超时！正在更换代理...' % url, e)
+#             redis = RedisHandler()
+#             redis.decrease(url)
+#
+#         except ConnectTimeoutError as e:
+#             print('连接失败！请检查代理服务器是否正常...', e)
+#
+#         except HTTPConnectionPool as e:
+#             print('Http连接池满，读取%s失败！10秒后再试...' % url, e)
+#             sleep(10)
+#             redis = RedisHandler()
+#             redis.decrease(url)
 
 
 def get_page_index(n, proxies=True, DEBUG=False):
@@ -41,7 +47,7 @@ def get_page_index(n, proxies=True, DEBUG=False):
     """
     url = 'http://shouji.baidu.com/software/%s/' % n
     while True:
-        html = get_html(url, proxies)
+        html = get_page(url, proxies)
         doc = pq(html)
         try:
             page_num = int(doc('.next').prev('li').children().text())
@@ -57,7 +63,7 @@ def get_page_index(n, proxies=True, DEBUG=False):
             print()
             print('==============================================================')
             print('正在爬: ', sub_url)
-            yield get_html(sub_url)
+            yield get_page(sub_url, proxies)
         break
 
 
@@ -78,14 +84,7 @@ def parse_page_index(html):
         print('无数据！')
 
 
-def get_proxy():
-    while True:
-        r = requests.get(settings.PROXY_GET_URL)
-        # proxy = BeautifulSoup(r.text, "lxml").get_text()
-        proxy = r.text
-        if proxy:
-            print('正在使用代理', proxy)
-            return proxy
+
 
 def main(n):
     """
@@ -97,13 +96,13 @@ def main(n):
     for html in htmls:
         items = parse_page_index(html)
         if items:
-            conn = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, settings.MONGO_TABLE)
+            mongo = MongoDBHandler(settings.MONGO_URL, settings.MONGO_DB, settings.MONGO_TABLE)
             try:
-                conn.save_to_app_name(items)
+                mongo.save_to_app_name(items)
             except Exception as e:
-                print('服务器储存发生错误:',  e)
+                print('MongoDB错误:', items, '被忽略', e)
             finally:
-                conn.close()
+                mongo.close()
     print('%s页完成！' % n)
 
 
@@ -116,9 +115,6 @@ def run():
     print(page_range)
 
     print([n for n in range(*page_range)])
-
-    for n in range(*page_range):
-        main(n)
 
     pool = Pool()
     pool.map(main, [n for n in range(*page_range)])

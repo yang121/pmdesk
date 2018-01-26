@@ -1,7 +1,8 @@
-import json
 import re
-from .utils import get_page
+
 from pyquery import PyQuery as pq
+
+from utils.utils import get_page
 
 
 class ProxyMetaclass(type):
